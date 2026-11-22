@@ -12,7 +12,7 @@ class BacktestConfig:
     slippage_rate: float
     cost_basis: CostBasis
     cost_source: str | None = None
-    take_profit_r_multiple: float | None = 2.0
+    take_profit_r_multiple: float | None = None
 
     def __post_init__(self):
         multiple = self.take_profit_r_multiple

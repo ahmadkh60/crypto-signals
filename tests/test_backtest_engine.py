@@ -17,11 +17,16 @@ class DummyStrategy:
         return self.signals.get(history.index, Signal("hold"))
 
 
-def make_config(commission=0.0, slippage=0.0):
+def make_config(
+    commission=0.0,
+    slippage=0.0,
+    take_profit_r_multiple=None,
+):
     return BacktestConfig(
         commission_rate=commission,
         slippage_rate=slippage,
         cost_basis="hypothetical",
+        take_profit_r_multiple=take_profit_r_multiple,
     )
 
 
@@ -425,6 +430,15 @@ def make_2r_candles(next_open):
     }
 
 
+
+def test_take_profit_is_disabled_by_default():
+    assert BacktestConfig(
+        commission_rate=0.0,
+        slippage_rate=0.0,
+        cost_basis="hypothetical",
+    ).take_profit_r_multiple is None
+
+
 def test_take_profit_2r_triggers_on_close_and_executes_next_open():
     strategy = DummyStrategy({
         0: Signal("long", stop_distance=10.0),
@@ -433,7 +447,7 @@ def test_take_profit_2r_triggers_on_close_and_executes_next_open():
     result = run_backtest(
         make_2r_candles(128.0),
         strategy,
-        make_config(),
+        make_config(take_profit_r_multiple=2.0),
     )
 
     assert len(result.trades) == 1
@@ -455,7 +469,7 @@ def test_take_profit_2r_not_triggered_when_close_below_target():
         0: Signal("long", stop_distance=10.0),
     })
 
-    result = run_backtest(candles, strategy, make_config())
+    result = run_backtest(candles, strategy, make_config(take_profit_r_multiple=2.0))
 
     trade = result.trades[0]
     assert trade.target_price == 130.0
@@ -471,7 +485,7 @@ def test_take_profit_2r_gap_down_can_realize_less_than_2r():
     result = run_backtest(
         make_2r_candles(128.0),
         strategy,
-        make_config(),
+        make_config(take_profit_r_multiple=2.0),
     )
 
     trade = result.trades[0]
@@ -488,7 +502,7 @@ def test_take_profit_2r_gap_up_can_realize_more_than_2r():
     result = run_backtest(
         make_2r_candles(140.0),
         strategy,
-        make_config(),
+        make_config(take_profit_r_multiple=2.0),
     )
 
     trade = result.trades[0]
@@ -523,7 +537,7 @@ def test_take_profit_2r_overrides_strategy_exit_on_same_close():
     result = run_backtest(
         make_2r_candles(140.0),
         strategy,
-        make_config(),
+        make_config(take_profit_r_multiple=2.0),
     )
 
     trade = result.trades[0]
